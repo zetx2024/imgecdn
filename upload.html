@@ -3,111 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CDN Uploader</title>
+    <title>CDN Pro Dashboard</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .upload-card { background: #1e293b; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 400px; text-align: center; }
-        input[type="file"] { margin: 20px 0; border: 2px dashed #334155; padding: 20px; width: 80%; border-radius: 8px; cursor: pointer; }
-        button { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
-        button:disabled { background: #475569; }
-        #result { margin-top: 20px; word-break: break-all; font-size: 0.9rem; padding: 10px; background: #0f172a; border-radius: 4px; display: none; }
-        .copy-btn { background: #10b981; margin-top: 10px; font-size: 0.8rem; }
+        :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --accent: #10b981; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: white; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* Layout */
+        .container { max-width: 1000px; width: 100%; }
+        .grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        
+        /* Components */
+        .card { background: var(--card); padding: 1.5rem; border-radius: 12px; box-shadow: 0 10px 15px rgba(0,0,0,0.3); margin-bottom: 20px; }
+        input, button { width: 100%; box-sizing: border-box; border-radius: 6px; }
+        input[type="password"] { background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; margin-bottom: 15px; }
+        
+        .upload-zone { border: 2px dashed #475569; padding: 20px; text-align: center; cursor: pointer; transition: 0.3s; }
+        .upload-zone:hover { border-color: var(--primary); background: #2d3748; }
+        
+        #pre-upload-preview { width: 100%; max-height: 200px; object-fit: contain; margin-top: 10px; display: none; border-radius: 8px; }
+        
+        button { background: var(--primary); color: white; border: none; padding: 12px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        button.secondary { background: #475569; margin-top: 5px; font-size: 0.8rem; }
+
+        /* Gallery */
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; max-height: 600px; overflow-y: auto; padding-right: 10px; }
+        .thumb-card { background: #0f172a; padding: 5px; border-radius: 8px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; }
+        .thumb-card:hover { transform: scale(1.05); border: 1px solid var(--primary); }
+        .thumb-card img { width: 100%; height: 80px; object-fit: cover; border-radius: 4px; }
+        .thumb-card span { font-size: 0.7rem; display: block; margin-top: 5px; color: #94a3b8; }
+
+        /* Modal */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; }
+        #modal img { max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 20px var(--primary); }
+        #modal-url { margin-top: 20px; background: white; color: black; padding: 10px; border-radius: 4px; width: 60%; text-align: center; }
     </style>
 </head>
 <body>
 
-<div class="upload-card">
-    <h2>CDN Asset Uploader</h2>
-    <input type="password" id="token" placeholder="Enter GitHub Token" style="width: 90%; padding: 8px; margin-bottom: 10px; border-radius: 4px; border: none;">
-    <input type="file" id="fileInput">
-    <button id="uploadBtn">Upload to Storage</button>
-    
-    <div id="result">
-        <p>Uploaded Successfully!</p>
-        <code id="urlText"></code>
-        <button class="copy-btn" onclick="copyUrl()">Copy URL</button>
+<div class="container">
+    <div class="grid">
+        <div class="sidebar">
+            <div class="card">
+                <label style="font-size: 0.8rem; color: #94a3b8;">GitHub Token (Auto-Saved)</label>
+                <input type="password" id="ghToken" placeholder="Paste Token...">
+                
+                <div class="upload-zone" id="dropZone">
+                    <span id="dropText">Click or Drop Asset</span>
+                    <input type="file" id="fileInput" hidden>
+                    <img id="pre-upload-preview">
+                </div>
+                
+                <button id="uploadBtn">Upload to Storage</button>
+            </div>
+
+            <div class="card" id="lastUploadCard" style="display:none; border: 1px solid var(--accent);">
+                <span style="color: var(--accent); font-weight: bold;">✅ Latest Link:</span>
+                <div id="latestLink" style="font-size: 0.75rem; word-break: break-all; margin: 10px 0; background: #000; padding: 8px;"></div>
+                <button onclick="copyLatest()" class="secondary">Copy Link</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="card">
+                <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin:0;">📁 Repository Storage</h3>
+                    <button id="refreshBtn" class="secondary" style="width: auto; padding: 5px 15px;">Refresh Gallery</button>
+                </div>
+                <div class="gallery" id="gallery">
+                    </div>
+            </div>
+        </div>
     </div>
 </div>
 
+<div id="modal" onclick="this.style.display='none'">
+    <img id="modalImg" src="">
+    <div id="modal-url" onclick="event.stopPropagation()"></div>
+    <p style="color: #94a3b8; margin-top: 10px;">Click anywhere to close</p>
+</div>
+
 <script>
-    const GITHUB_USER = "YOUR_GITHUB_USERNAME";
-    const REPO_NAME = "imgecdn";
-    const FOLDER = "storage";
-    const CDN_DOMAIN = "cdn1.yrjmail.com";
+    // --- SETTINGS ---
+    const CONFIG = {
+        user: "zetx2024", // CHANGE THIS
+        repo: "imgecdn",
+        folder: "storage",
+        cdn: "cdn1.yrjmail.com"
+    };
 
-    document.getElementById('uploadBtn').addEventListener('click', async () => {
-        const fileInput = document.getElementById('fileInput');
-        const token = document.getElementById('token').value;
+    const tokenInput = document.getElementById('ghToken');
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const preview = document.getElementById('pre-upload-preview');
+    const gallery = document.getElementById('gallery');
+
+    // 1. Initial Load
+    window.onload = () => {
+        const saved = localStorage.getItem('cdn_token');
+        if (saved) {
+            tokenInput.value = saved;
+            loadGallery();
+        }
+    };
+
+    // 2. Token Binding
+    tokenInput.addEventListener('input', () => {
+        localStorage.setItem('cdn_token', tokenInput.value);
+    });
+
+    // 3. Real-time Preview Logic
+    dropZone.onclick = () => fileInput.click();
+    fileInput.onchange = () => {
+        const file = fileInput.files[0];
+        if (file) {
+            document.getElementById('dropText').style.display = 'none';
+            preview.style.display = 'block';
+            preview.src = URL.createObjectURL(file);
+        }
+    };
+
+    // 4. Upload Logic
+    document.getElementById('uploadBtn').onclick = async () => {
+        const token = tokenInput.value;
+        const file = fileInput.files[0];
+        if (!file || !token) return alert("Select a file and ensure token is entered!");
+
         const btn = document.getElementById('uploadBtn');
-
-        if (!fileInput.files[0] || !token) return alert("Select file and enter token!");
-
         btn.disabled = true;
-        btn.innerText = "Processing...";
+        btn.innerText = "Processing Sequence...";
 
         try {
-            const file = fileInput.files[0];
-            const ext = file.name.split('.').pop();
-
-            // 1. Fetch folder content to find the next number
-            const listRes = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${FOLDER}`, {
+            // Find next number
+            const listRes = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}`, {
                 headers: { 'Authorization': `token ${token}` }
             });
-            
             const files = await listRes.json();
-            let nextNumber = 1;
-
+            let nextNum = 1;
             if (Array.isArray(files)) {
-                const numbers = files
-                    .map(f => parseInt(f.name.split('.')[0]))
-                    .filter(n => !isNaN(n));
-                if (numbers.length > 0) nextNumber = Math.max(...numbers) + 1;
+                const nums = files.map(f => parseInt(f.name)).filter(n => !isNaN(n));
+                if (nums.length > 0) nextNum = Math.max(...nums) + 1;
             }
 
-            const newFileName = `${nextNumber}.${ext}`;
+            const ext = file.name.split('.').pop();
+            const newName = `${nextNum}.${ext}`;
+            
             const reader = new FileReader();
-
             reader.onload = async () => {
-                const base64Content = reader.result.split(',')[1];
-
-                // 2. Upload to GitHub via API
-                const uploadRes = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/${FOLDER}/${newFileName}`, {
+                const content = reader.result.split(',')[1];
+                const res = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}/${newName}`, {
                     method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: `Upload ${newFileName}`,
-                        content: base64Content
-                    })
+                    headers: { 'Authorization': `token ${token}` },
+                    body: JSON.stringify({ message: `Upload ${newName}`, content })
                 });
 
-                if (uploadRes.ok) {
-                    const finalUrl = `https://${CDN_DOMAIN}/${FOLDER}/${newFileName}`;
-                    document.getElementById('urlText').innerText = finalUrl;
-                    document.getElementById('result').style.display = 'block';
-                } else {
-                    alert("Upload failed. Check token permissions.");
+                if (res.ok) {
+                    const url = `https://${CONFIG.cdn}/${CONFIG.folder}/${newName}`;
+                    document.getElementById('lastUploadCard').style.display = 'block';
+                    document.getElementById('latestLink').innerText = url;
+                    loadGallery(); // Refresh list
+                    alert("Upload Success!");
                 }
                 btn.disabled = false;
                 btn.innerText = "Upload to Storage";
             };
-
             reader.readAsDataURL(file);
+        } catch (e) { alert("Error: " + e.message); btn.disabled = false; }
+    };
 
-        } catch (err) {
-            console.error(err);
-            alert("Error occurred. Check console.");
-            btn.disabled = false;
-        }
-    });
-
-    function copyUrl() {
-        const text = document.getElementById('urlText').innerText;
-        navigator.clipboard.writeText(text);
-        alert("Link copied!");
+    // 5. Gallery & Modal Logic
+    async function loadGallery() {
+        const token = tokenInput.value;
+        if (!token) return;
+        gallery.innerHTML = "Loading assets...";
+        
+        try {
+            const res = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}`, {
+                headers: { 'Authorization': `token ${token}` }
+            });
+            const files = await res.json();
+            gallery.innerHTML = "";
+            
+            files.reverse().forEach(file => {
+                if (file.name === ".gitkeep") return;
+                const url = `https://${CONFIG.cdn}/${CONFIG.folder}/${file.name}`;
+                
+                const div = document.createElement('div');
+                div.className = 'thumb-card';
+                div.innerHTML = `<img src="${url}"><span>${file.name}</span>`;
+                div.onclick = () => showLarge(url);
+                gallery.appendChild(div);
+            });
+        } catch (e) { gallery.innerHTML = "Failed to load gallery."; }
     }
+
+    function showLarge(url) {
+        document.getElementById('modal').style.display = 'flex';
+        document.getElementById('modalImg').src = url;
+        document.getElementById('modal-url').innerText = url;
+    }
+
+    function copyLatest() {
+        navigator.clipboard.writeText(document.getElementById('latestLink').innerText);
+        alert("Copied!");
+    }
+
+    document.getElementById('refreshBtn').onclick = loadGallery;
 </script>
 
 </body>
