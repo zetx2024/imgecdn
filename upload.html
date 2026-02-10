@@ -3,39 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CDN Pro Dashboard</title>
+    <title>Media CDN Pro</title>
     <style>
-        :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --accent: #10b981; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: white; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        :root { --primary: #6366f1; --bg: #0b0f1a; --card: #161b22; --accent: #10b981; --danger: #ef4444; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: #e6edf3; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
         
-        /* Layout */
-        .container { max-width: 1000px; width: 100%; }
+        .container { max-width: 1100px; width: 100%; }
         .grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
         
-        /* Components */
-        .card { background: var(--card); padding: 1.5rem; border-radius: 12px; box-shadow: 0 10px 15px rgba(0,0,0,0.3); margin-bottom: 20px; }
-        input, button { width: 100%; box-sizing: border-box; border-radius: 6px; }
-        input[type="password"] { background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; margin-bottom: 15px; }
+        .card { background: var(--card); padding: 1.5rem; border-radius: 12px; border: 1px solid #30363d; box-shadow: 0 8px 24px rgba(0,0,0,0.5); margin-bottom: 20px; }
+        input[type="password"] { width: 100%; background: #010409; border: 1px solid #30363d; color: white; padding: 12px; border-radius: 6px; box-sizing: border-box; margin-bottom: 15px; }
         
-        .upload-zone { border: 2px dashed #475569; padding: 20px; text-align: center; cursor: pointer; transition: 0.3s; }
-        .upload-zone:hover { border-color: var(--primary); background: #2d3748; }
+        /* Upload Section */
+        .upload-zone { border: 2px dashed #484f58; padding: 30px; text-align: center; cursor: pointer; border-radius: 12px; transition: 0.2s; position: relative; overflow: hidden; }
+        .upload-zone:hover { border-color: var(--primary); background: #1c2128; }
+        #pre-upload-preview, #pre-video-preview { width: 100%; max-height: 200px; border-radius: 8px; display: none; margin-top: 10px; }
         
-        #pre-upload-preview { width: 100%; max-height: 200px; object-fit: contain; margin-top: 10px; display: none; border-radius: 8px; }
-        
-        button { background: var(--primary); color: white; border: none; padding: 12px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        button.secondary { background: #475569; margin-top: 5px; font-size: 0.8rem; }
+        button { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: 700; transition: 0.2s; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #484f58; cursor: not-allowed; }
+        .secondary { background: #21262d; border: 1px solid #30363d; margin-top: 8px; color: #c9d1d9; font-size: 0.85rem; }
 
         /* Gallery */
-        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; max-height: 600px; overflow-y: auto; padding-right: 10px; }
-        .thumb-card { background: #0f172a; padding: 5px; border-radius: 8px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; }
-        .thumb-card:hover { transform: scale(1.05); border: 1px solid var(--primary); }
-        .thumb-card img { width: 100%; height: 80px; object-fit: cover; border-radius: 4px; }
-        .thumb-card span { font-size: 0.7rem; display: block; margin-top: 5px; color: #94a3b8; }
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; max-height: 70vh; overflow-y: auto; padding-right: 5px; }
+        .thumb { background: #010409; padding: 8px; border-radius: 8px; border: 1px solid #30363d; cursor: pointer; text-align: center; }
+        .thumb:hover { border-color: var(--primary); }
+        .thumb img, .thumb video { width: 100%; height: 100px; object-fit: cover; border-radius: 4px; pointer-events: none; }
+        .thumb span { font-size: 0.7rem; color: #8b949e; display: block; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* Modal */
-        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; }
-        #modal img { max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 20px var(--primary); }
-        #modal-url { margin-top: 20px; background: white; color: black; padding: 10px; border-radius: 4px; width: 60%; text-align: center; }
+        /* Modal Overlay */
+        #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        #modal-content { max-width: 90%; max-height: 75%; border-radius: 8px; }
+        #modal-url { margin-top: 20px; background: #161b22; border: 1px solid #30363d; padding: 12px; width: 80%; text-align: center; word-break: break-all; border-radius: 6px; font-family: monospace; }
     </style>
 </head>
 <body>
@@ -44,107 +43,126 @@
     <div class="grid">
         <div class="sidebar">
             <div class="card">
-                <label style="font-size: 0.8rem; color: #94a3b8;">GitHub Token (Auto-Saved)</label>
-                <input type="password" id="ghToken" placeholder="Paste Token...">
+                <h3 style="margin-top:0">Upload Asset</h3>
+                <input type="password" id="ghToken" placeholder="GitHub Access Token">
                 
                 <div class="upload-zone" id="dropZone">
-                    <span id="dropText">Click or Drop Asset</span>
-                    <input type="file" id="fileInput" hidden>
+                    <div id="dropLabel"><b>Click to Browse</b><br><small>IMG or MP4 (Max 100MB)</small></div>
+                    <input type="file" id="fileInput" accept="image/*,video/mp4" hidden>
                     <img id="pre-upload-preview">
+                    <video id="pre-video-preview" muted loop></video>
                 </div>
                 
-                <button id="uploadBtn">Upload to Storage</button>
+                <button id="uploadBtn">Publish to CDN</button>
+                <div id="statusMsg" style="margin-top:10px; font-size: 0.8rem; text-align: center;"></div>
             </div>
-
-            <div class="card" id="lastUploadCard" style="display:none; border: 1px solid var(--accent);">
-                <span style="color: var(--accent); font-weight: bold;">✅ Latest Link:</span>
-                <div id="latestLink" style="font-size: 0.75rem; word-break: break-all; margin: 10px 0; background: #000; padding: 8px;"></div>
-                <button onclick="copyLatest()" class="secondary">Copy Link</button>
+            
+            <div class="card" id="linkCard" style="display:none; border-color: var(--accent);">
+                <small style="color: var(--accent)">Success! Link Created:</small>
+                <div id="newUrlDisplay" style="font-size: 0.75rem; background: #000; padding: 10px; margin: 8px 0; border-radius: 4px;"></div>
+                <button onclick="copyLink()" class="secondary">Copy to Clipboard</button>
             </div>
         </div>
 
         <div class="content">
             <div class="card">
                 <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin:0;">📁 Repository Storage</h3>
-                    <button id="refreshBtn" class="secondary" style="width: auto; padding: 5px 15px;">Refresh Gallery</button>
+                    <h3 style="margin:0">Media Library</h3>
+                    <button id="refreshBtn" class="secondary" style="width:auto">Refresh</button>
                 </div>
-                <div class="gallery" id="gallery">
-                    </div>
+                <div class="gallery" id="gallery">Enter token to load library...</div>
             </div>
         </div>
     </div>
 </div>
 
-<div id="modal" onclick="this.style.display='none'">
-    <img id="modalImg" src="">
+<div id="modal" onclick="closeModal()">
+    <div id="mediaContainer" style="width: 100%; display: flex; justify-content: center;"></div>
     <div id="modal-url" onclick="event.stopPropagation()"></div>
-    <p style="color: #94a3b8; margin-top: 10px;">Click anywhere to close</p>
+    <button class="secondary" style="width:auto; padding: 10px 30px" onclick="copyModalLink(event)">Copy Link</button>
 </div>
 
 <script>
-    // --- SETTINGS ---
     const CONFIG = {
-        user: "zetx2024", // CHANGE THIS
+        user: "zetx2024", // MUST CHANGE THIS
         repo: "imgecdn",
         folder: "storage",
-        cdn: "cdn1.yrjmail.com"
+        cdn: "cdn1.yrjmail.com",
+        allowedExt: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4'],
+        maxSize: 100 * 1024 * 1024 // 100MB
     };
 
     const tokenInput = document.getElementById('ghToken');
     const fileInput = document.getElementById('fileInput');
-    const dropZone = document.getElementById('dropZone');
-    const preview = document.getElementById('pre-upload-preview');
     const gallery = document.getElementById('gallery');
+    const uploadBtn = document.getElementById('uploadBtn');
 
-    // 1. Initial Load
+    // Load Token and Gallery
     window.onload = () => {
-        const saved = localStorage.getItem('cdn_token');
+        const saved = localStorage.getItem('cdn_token_secure');
         if (saved) {
             tokenInput.value = saved;
             loadGallery();
         }
     };
 
-    // 2. Token Binding
     tokenInput.addEventListener('input', () => {
-        localStorage.setItem('cdn_token', tokenInput.value);
+        localStorage.setItem('cdn_token_secure', tokenInput.value);
+        loadGallery();
     });
 
-    // 3. Real-time Preview Logic
-    dropZone.onclick = () => fileInput.click();
+    // Preview File
+    document.getElementById('dropZone').onclick = () => fileInput.click();
     fileInput.onchange = () => {
         const file = fileInput.files[0];
-        if (file) {
-            document.getElementById('dropText').style.display = 'none';
-            preview.style.display = 'block';
-            preview.src = URL.createObjectURL(file);
+        if (!file) return;
+
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!CONFIG.allowedExt.includes(ext)) {
+            alert("Format not allowed! Please use Images or MP4.");
+            fileInput.value = ""; return;
+        }
+
+        if (file.size > CONFIG.maxSize) {
+            alert("File too large! Max limit is 100MB.");
+            fileInput.value = ""; return;
+        }
+
+        document.getElementById('dropLabel').style.display = 'none';
+        if (ext === 'mp4') {
+            document.getElementById('pre-upload-preview').style.display = 'none';
+            document.getElementById('pre-video-preview').style.display = 'block';
+            document.getElementById('pre-video-preview').src = URL.createObjectURL(file);
+            document.getElementById('pre-video-preview').play();
+        } else {
+            document.getElementById('pre-video-preview').style.display = 'none';
+            document.getElementById('pre-upload-preview').style.display = 'block';
+            document.getElementById('pre-upload-preview').src = URL.createObjectURL(file);
         }
     };
 
-    // 4. Upload Logic
-    document.getElementById('uploadBtn').onclick = async () => {
+    // Upload Action
+    uploadBtn.onclick = async () => {
         const token = tokenInput.value;
         const file = fileInput.files[0];
-        if (!file || !token) return alert("Select a file and ensure token is entered!");
+        if (!file || !token) return alert("Select a file and provide token.");
 
-        const btn = document.getElementById('uploadBtn');
-        btn.disabled = true;
-        btn.innerText = "Processing Sequence...";
+        uploadBtn.disabled = true;
+        uploadBtn.innerText = "Connecting to GitHub...";
 
         try {
-            // Find next number
-            const listRes = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}`, {
+            const list = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}`, {
                 headers: { 'Authorization': `token ${token}` }
             });
-            const files = await listRes.json();
+            const files = await list.json();
+            
             let nextNum = 1;
             if (Array.isArray(files)) {
                 const nums = files.map(f => parseInt(f.name)).filter(n => !isNaN(n));
                 if (nums.length > 0) nextNum = Math.max(...nums) + 1;
             }
 
-            const ext = file.name.split('.').pop();
+            const ext = file.name.split('.').pop().toLowerCase();
             const newName = `${nextNum}.${ext}`;
             
             const reader = new FileReader();
@@ -158,55 +176,61 @@
 
                 if (res.ok) {
                     const url = `https://${CONFIG.cdn}/${CONFIG.folder}/${newName}`;
-                    document.getElementById('lastUploadCard').style.display = 'block';
-                    document.getElementById('latestLink').innerText = url;
-                    loadGallery(); // Refresh list
-                    alert("Upload Success!");
-                }
-                btn.disabled = false;
-                btn.innerText = "Upload to Storage";
+                    document.getElementById('linkCard').style.display = 'block';
+                    document.getElementById('newUrlDisplay').innerText = url;
+                    loadGallery();
+                } else { alert("Upload failed. Verify token permissions."); }
+                
+                uploadBtn.disabled = false;
+                uploadBtn.innerText = "Publish to CDN";
             };
             reader.readAsDataURL(file);
-        } catch (e) { alert("Error: " + e.message); btn.disabled = false; }
+        } catch (e) { alert(e.message); uploadBtn.disabled = false; }
     };
 
-    // 5. Gallery & Modal Logic
+    // Load Gallery (Hides code files)
     async function loadGallery() {
         const token = tokenInput.value;
         if (!token) return;
-        gallery.innerHTML = "Loading assets...";
-        
+        gallery.innerHTML = "Syncing...";
+
         try {
             const res = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}`, {
                 headers: { 'Authorization': `token ${token}` }
             });
             const files = await res.json();
             gallery.innerHTML = "";
-            
-            files.reverse().forEach(file => {
-                if (file.name === ".gitkeep") return;
+
+            files.filter(f => {
+                const ext = f.name.split('.').pop().toLowerCase();
+                return CONFIG.allowedExt.includes(ext);
+            }).reverse().forEach(file => {
                 const url = `https://${CONFIG.cdn}/${CONFIG.folder}/${file.name}`;
+                const isVid = file.name.endsWith('.mp4');
                 
                 const div = document.createElement('div');
-                div.className = 'thumb-card';
-                div.innerHTML = `<img src="${url}"><span>${file.name}</span>`;
-                div.onclick = () => showLarge(url);
+                div.className = 'thumb';
+                div.innerHTML = isVid ? `<video src="${url}"></video>` : `<img src="${url}">`;
+                div.innerHTML += `<span>${file.name}</span>`;
+                div.onclick = () => openModal(url, isVid);
                 gallery.appendChild(div);
             });
-        } catch (e) { gallery.innerHTML = "Failed to load gallery."; }
+        } catch (e) { gallery.innerHTML = "No assets found or invalid token."; }
     }
 
-    function showLarge(url) {
-        document.getElementById('modal').style.display = 'flex';
-        document.getElementById('modalImg').src = url;
+    function openModal(url, isVid) {
+        const container = document.getElementById('mediaContainer');
+        container.innerHTML = isVid ? 
+            `<video id="modal-content" src="${url}" controls autoplay></video>` : 
+            `<img id="modal-content" src="${url}">`;
+        
         document.getElementById('modal-url').innerText = url;
+        document.getElementById('modal').style.display = 'flex';
     }
 
-    function copyLatest() {
-        navigator.clipboard.writeText(document.getElementById('latestLink').innerText);
-        alert("Copied!");
-    }
-
+    function closeModal() { document.getElementById('modal').style.display = 'none'; document.getElementById('mediaContainer').innerHTML = ""; }
+    function copyLink() { navigator.clipboard.writeText(document.getElementById('newUrlDisplay').innerText); alert("Copied!"); }
+    function copyModalLink(e) { e.stopPropagation(); navigator.clipboard.writeText(document.getElementById('modal-url').innerText); alert("Copied!"); }
     document.getElementById('refreshBtn').onclick = loadGallery;
 </script>
 
