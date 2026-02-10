@@ -1,0 +1,65 @@
+name: Robust Sequential Rename
+on:
+  push:
+    paths:
+      - 'storage/**'
+
+jobs:
+  rename-files:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enhanced Sequential Rename
+        shell: bash
+        run: |
+          TARGET_DIR="storage"
+          if [ ! -d "$TARGET_DIR" ]; then echo "Directory $TARGET_DIR not found"; exit 0; fi
+          
+          cd "$TARGET_DIR"
+
+          # 1. Get the current highest number safely
+          # Looks for files that are JUST numbers + extension
+          max_num=$(ls -1 | grep -E '^[0-9]+\.[a-zA-Z0-9]+$' | sed 's/\..*//' | sort -n | tail -1)
+          
+          if [[ -z "$max_num" ]]; then
+            count=1
+          else
+            count=$((max_num + 1))
+          fi
+
+          # 2. Use 'find' to handle spaces and special characters safely
+          # We sort them to ensure consistent renaming order
+          find . -maxdepth 1 -type f -not -name ".*" | sort | while read -r file; do
+            # Remove leading './'
+            filename=$(basename "$file")
+            
+            # SKIP if the file is already a pure number (to avoid renaming 1.jpg to 2.jpg)
+            if [[ "$filename" =~ ^[0-9]+\.[a-zA-Z0-9]+$ ]]; then
+              continue
+            fi
+
+            # Extract extension and convert to lowercase for consistency
+            ext="${filename##*.}"
+            lc_ext=$(echo "$ext" | tr '[:upper:]' '[:lower:]')
+            
+            new_name="${count}.${lc_ext}"
+            
+            # Rename and increment
+            mv "$filename" "$new_name"
+            echo "Successfully transformed: '$filename' -> '$new_name'"
+            
+            ((count++))
+          done
+
+      - name: Commit and Push
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: auto-rename storage to sequence"
+          file_pattern: 'storage/*'
