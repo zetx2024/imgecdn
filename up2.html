@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>imgecdn — GitHub storage uploader</title>
+  <style>
+    :root{
+      --primary:#6366f1; --bg:#0d1117; --card:#0f1720; --muted:#8b949e;
+      --accent:#10b981; --border:#23292f; --error:#f87171;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial; background:var(--bg); color:#c9d1d9; margin:0}
+    header{background:var(--card); border-bottom:1px solid var(--border); padding:14px 20px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:90}
+    header .brand{font-weight:800; font-size:1.1rem}
+    header .status small{color:var(--muted); margin-left:8px}
+
+    .wrap{max-width:1200px;margin:20px auto;padding:0 18px; display:grid; grid-template-columns:360px 1fr; gap:18px}
+    .card{background:var(--card); border:1px solid var(--border); padding:14px; border-radius:10px; box-shadow:0 8px 30px rgba(2,6,23,.6)}
+    h3{margin:0 0 10px 0;font-size:1rem}
+    .muted{color:var(--muted);font-size:0.9rem}
+
+    /* token area */
+    .token-wrap{display:flex; gap:8px; align-items:center}
+    input[type=password], input[type=text], input[type=file]{
+      width:100%; background:#02040a; border:1px solid var(--border); color:inherit; padding:10px; border-radius:6px;
+    }
+    .small-btn{padding:8px 10px; border-radius:6px; border:none; background:var(--primary); color:white; cursor:pointer}
+
+    /* drop zone */
+    .drop-zone{border:2px dashed #40484e; padding:24px; text-align:center; border-radius:10px; cursor:pointer}
+    .drop-zone.dragover{border-color:var(--primary); background:#0e1420}
+
+    /* queue */
+    .queue-list{margin-top:12px; max-height:260px; overflow:auto}
+    .q-item{display:flex; align-items:center; gap:10px; padding:8px; border-radius:6px; border:1px solid var(--border); margin-bottom:8px; background:#06070a}
+    .q-thumb{width:64px; height:48px; object-fit:cover; border-radius:4px; background:#0b0f14}
+    .q-meta{flex:1; min-width:0}
+    .q-name{font-size:0.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    .q-sub{font-size:0.78rem; color:var(--muted)}
+    .q-actions{display:flex; gap:8px; align-items:center}
+
+    .progress{height:8px;background:#071018;border-radius:6px; overflow:hidden;border:1px solid var(--border)}
+    .progress > i{display:block;height:100%; width:0%; background:linear-gradient(90deg,var(--primary),#4f46e5)}
+
+    /* gallery */
+    .gallery{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px}
+    .thumb{background:#02040a;border-radius:8px;padding:8px;border:1px solid var(--border); cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:8px}
+    .thumb img, .thumb video{width:100%; height:110px; object-fit:cover; border-radius:6px; background:#0f1720}
+    .thumb .fn{font-size:0.82rem; color:var(--muted); text-align:center; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; width:100%}
+    .gallery-actions{display:flex; gap:8px; margin-bottom:10px; align-items:center}
+
+    /* modal */
+    #modal{display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:120; justify-content:center; align-items:center; padding:20px}
+    #modal .box{max-width:92vw; max-height:92vh; background:transparent; outline:none}
+    #modal .meta{margin-top:10px; background:#02040a; padding:10px; border-radius:6px; border:1px solid var(--border); word-break:break-all; color:var(--muted)}
+
+    /* responsive */
+    @media (max-width:900px){.wrap{grid-template-columns:1fr; padding-bottom:50px}}
+    .warn{color:var(--error)}
+    .ok{color:var(--accent)}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">CDN<span style="color:var(--primary)">PRO</span> — imgecdn</div>
+  <div class="status">
+    <span id="connStatus">🔒 Disconnected</span>
+    <small id="userLabel" class="muted"></small>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- LEFT: controls -->
+  <div class="card">
+
+    <h3>Configuration & Token</h3>
+    <div class="muted" style="margin-bottom:8px">Set repo details and connect with a GitHub token (repo scope).</div>
+
+    <div style="display:grid; gap:8px; margin-bottom:8px">
+      <input id="cfgUser" type="text" placeholder="GitHub username (owner)" value="" />
+      <input id="cfgRepo" type="text" placeholder="Repository name" value="imgecdn" />
+      <input id="cfgFolder" type="text" placeholder="Folder in repo (storage)" value="storage" />
+      <input id="cfgCdn" type="text" placeholder="CDN domain (optional)" value="cdn1.yrjmail.com" />
+    </div>
+
+    <div id="tokenArea" style="margin-top:10px" class="token-wrap">
+      <input id="tokenInput" type="password" placeholder="GitHub Personal Access Token" />
+      <button id="saveTokenBtn" class="small-btn">Connect</button>
+    </div>
+
+    <div id="tokenShort" style="display:none; margin-top:10px; align-items:center; gap:8px;">
+      <div class="muted">Token saved</div>
+      <button id="revealToken" class="small-btn" style="padding:6px 8px">Manage</button>
+      <button id="logoutBtn" class="small-btn" style="background:#ef4444">Logout</button>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:10px;">
+      <button id="loadGalleryBtn" class="small-btn">Refresh gallery</button>
+      <button id="listAllBtn" class="small-btn" style="background:#111827">List remote files</button>
+    </div>
+
+    <hr style="border:none; height:10px; opacity:.03"/>
+
+    <h3>Drop / Paste / Drag</h3>
+    <div class="muted">Drag images/videos here, click to browse, or paste a link into the input below.</div>
+
+    <div id="dropZone" class="drop-zone" style="margin-top:10px">
+      <div style="font-weight:700">Drag & Drop or Click to Browse</div>
+      <div class="muted" style="margin-top:6px">Supported: jpg jpeg png gif webp svg mp4</div>
+      <input id="fileInput" type="file" multiple webkitdirectory directory style="display:none" accept="image/*,video/mp4" />
+    </div>
+
+    <input id="linkInput" type="text" placeholder="Paste image/video URL then press Enter" style="margin-top:10px" />
+
+    <div style="margin-top:10px; display:flex; gap:8px;">
+      <button id="pasteBtn" class="small-btn">Paste & Fetch</button>
+      <button id="clearQueueBtn" class="small-btn" style="background:#374151">Clear queue</button>
+    </div>
+
+    <hr style="border:none; height:10px; opacity:.03"/>
+
+    <h3>Upload Queue</h3>
+    <div class="muted">Files waiting to be uploaded. Only allowed extensions will be queued.</div>
+
+    <div class="queue-list card" id="queueList" style="margin-top:8px; padding:10px; max-height:260px; overflow:auto;">
+      <!-- queue items -->
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button id="startUploadBtn" class="small-btn" style="flex:1">Start Upload</button>
+      <button id="bulkClearRemote" class="small-btn" style="background:#7c3aed">Delete selected</button>
+    </div>
+
+    <div style="margin-top:10px; font-size:0.88rem" class="muted">
+      <div><strong>Overall:</strong> <span id="overallProgressTxt">idle</span></div>
+      <div style="height:8px; background:#071018; border-radius:6px; border:1px solid var(--border); margin-top:6px">
+        <i id="overallProgress" style="display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--primary),#4f46e5)"></i>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: gallery & actions -->
+  <div class="card">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div>
+        <h3 style="margin:0">Live Storage Gallery</h3>
+        <div class="muted">Click a thumb to open larger preview and get CDN link.</div>
+      </div>
+
+      <div class="gallery-actions">
+        <button id="selectAllRemote" class="small-btn" style="background:#111827">Select all</button>
+        <button id="deselectAllRemote" class="small-btn" style="background:#111827">Deselect</button>
+        <button id="deleteSelectedRemote" class="small-btn" style="background:#ef4444">Delete selected</button>
+      </div>
+    </div>
+
+    <div id="gallery" class="gallery" style="min-height:140px">
+      <div class="muted">Not connected — please provide token & connect.</div>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:8px; align-items:center">
+      <div class="muted">Recent uploads:</div>
+      <div id="recentUploads" class="muted" style="font-weight:600"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- modal viewer -->
+<div id="modal" onclick="if(event.target===this) closeModal()">
+  <div class="box" id="modalBox">
+    <!-- dynamic content -->
+  </div>
+  <div class="meta" id="modalUrl"></div>
+</div>
+
+<script>
+/*
+  imgecdn uploader (single-file)
+  - Replace cfgUser in UI or change default in CONFIG below.
+  - Requires a GitHub token with repo permissions (user provides through UI).
+*/
+
+const CONFIG = {
+  user: '',   // default will be read from UI or updated from localStorage
+  repo: 'imgecdn',
+  folder: 'storage',
+  cdn: 'cdn1.yrjmail.com',
+  exts: ['jpg','jpeg','png','gif','webp','svg','mp4'],
+  maxFileSize: 90 * 1024 * 1024 // 90MB safe limit
+};
+
+let queue = []; // {id, file, state, progress, name}
+let remoteFiles = []; // remote list with {name, sha, size}
+let selectedRemote = new Set();
+
+const $ = id => document.getElementById(id);
+
+// --- init UI elements & read saved token/config
+const tokenKey = 'cdn_token_secure_v1';
+const cfgUserEl = $('cfgUser');
+const cfgRepoEl = $('cfgRepo');
+const cfgFolderEl = $('cfgFolder');
+const cfgCdnEl = $('cfgCdn');
+const tokenInput = $('tokenInput');
+const saveTokenBtn = $('saveTokenBtn');
+const tokenArea = $('tokenArea');
+const tokenShort = $('tokenShort');
+const revealTokenBtn = $('revealToken');
+const logoutBtn = $('logoutBtn');
+
+function loadLocalConfig(){
+  const savedCfg = JSON.parse(localStorage.getItem('cdn_cfg')||'{}');
+  if(savedCfg.user) cfgUserEl.value = savedCfg.user;
+  if(savedCfg.repo) cfgRepoEl.value = savedCfg.repo;
+  if(savedCfg.folder) cfgFolderEl.value = savedCfg.folder;
+  if(savedCfg.cdn) cfgCdnEl.value = savedCfg.cdn;
+  const t = localStorage.getItem(tokenKey);
+  if(t){
+    tokenArea.style.display='none';
+    tokenShort.style.display='flex';
+    $('connStatus').innerText = '✅ Connected';
+    $('userLabel').innerText = cfgUserEl.value ? cfgUserEl.value + ' / ' + cfgRepoEl.value : '';
+  } else {
+    tokenArea.style.display='flex';
+    tokenShort.style.display='none';
+    $('connStatus').innerText = '🔒 Disconnected';
+    $('userLabel').innerText = '';
+  }
+}
+loadLocalConfig();
+
+// save minimal config
+function saveCfgToLocal(){
+  localStorage.setItem('cdn_cfg', JSON.stringify({
+    user: cfgUserEl.value.trim(),
+    repo: cfgRepoEl.value.trim(),
+    folder: cfgFolderEl.value.trim(),
+    cdn: cfgCdnEl.value.trim()
+  }));
+  CONFIG.user = cfgUserEl.value.trim();
+  CONFIG.repo = cfgRepoEl.value.trim() || CONFIG.repo;
+  CONFIG.folder = cfgFolderEl.value.trim() || CONFIG.folder;
+  CONFIG.cdn = cfgCdnEl.value.trim() || CONFIG.cdn;
+}
+
+cfgUserEl.onchange = cfgRepoEl.onchange = cfgFolderEl.onchange = cfgCdnEl.onchange = () => {
+  saveCfgToLocal();
+  loadLocalConfig();
+}
+
+// --- token management
+saveTokenBtn.onclick = () => {
+  const t = tokenInput.value.trim();
+  if(!t) return alert('Please paste your GitHub token (repo scope).');
+  localStorage.setItem(tokenKey, t);
+  saveCfgToLocal();
+  tokenInput.value = '';
+  loadLocalConfig();
+  loadGallery();
+};
+
+revealTokenBtn.onclick = () => {
+  tokenArea.style.display='flex';
+  tokenShort.style.display='none';
+  // pre-fill token as masked? we don't have actual token to show
+};
+
+logoutBtn.onclick = () => {
+  if(!confirm('Remove saved token from this browser?')) return;
+  localStorage.removeItem(tokenKey);
+  loadLocalConfig();
+  remoteFiles = [];
+  renderGallery();
+};
+
+function getToken(){
+  return localStorage.getItem(tokenKey);
+}
+
+function authHeaders(){
+  const t = getToken();
+  if(!t) return {};
+  return { 'Authorization': `token ${t}` };
+}
+
+// helpful: display status
+function setOverallProgress(pct, txt){
+  $('overallProgress').style.width = pct + '%';
+  $('overallProgressTxt').innerText = txt || `${pct}%`;
+}
+
+// --- drop zone & file input
+const dropZone = $('dropZone');
+const fileInput = $('fileInput');
+const linkInput = $('linkInput');
+const pasteBtn = $('pasteBtn');
+const clearQueueBtn = $('clearQueueBtn');
+
+dropZone.addEventListener('click', ()=>fileInput.click());
+fileInput.addEventListener('change', e => {
+  addFilesFromList(e.target.files);
+  fileInput.value = '';
+});
+
+// drag & drop with support for links
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover') });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', async e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+
+  // differentiate between files and URI(s)
+  const dt = e.dataTransfer;
+  if(dt.files && dt.files.length){
+    addFilesFromList(dt.files);
+  } else {
+    // try text/uri-list or text/plain
+    const txt = dt.getData('text/uri-list') || dt.getData('text/plain');
+    if(txt) {
+      await fetchFromUrlToQueue(txt);
+    }
+  }
+});
+
+linkInput.addEventListener('keydown', async (e)=>{
+  if(e.key === 'Enter') {
+    const url = linkInput.value.trim();
+    if(!url) return;
+    linkInput.value = 'Fetching...';
+    await fetchFromUrlToQueue(url);
+    linkInput.value = '';
+  }
+});
+
+pasteBtn.addEventListener('click', async ()=>{
+  const clip = await navigator.clipboard.readText().catch(()=>null);
+  if(!clip) return alert('Clipboard not available.');
+  linkInput.value = clip;
+  linkInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}));
+});
+
+clearQueueBtn.addEventListener('click', ()=> {
+  if(!confirm('Clear all files in queue?')) return;
+  queue = [];
+  renderQueue();
+});
+
+// add files helper with validation
+function addFilesFromList(fileList){
+  const arr = Array.from(fileList);
+  let added = 0, skipped = 0;
+  for(const f of arr){
+    const ext = (f.name.split('.').pop()||'').toLowerCase();
+    if(!CONFIG.exts.includes(ext)){
+      skipped++;
+      continue;
+    }
+    if(f.size > CONFIG.maxFileSize){
+      alert(`File ${f.name} is too big (> ${Math.round(CONFIG.maxFileSize/1024/1024)} MB). Skipped.`);
+      skipped++;
+      continue;
+    }
+    queue.push({
+      id: Math.random().toString(36).slice(2),
+      file: f,
+      state: 'ready', // ready|uploading|done|error
+      progress: 0,
+      name: sanitizeFileName(f.name)
+    });
+    added++;
+  }
+  if(added===0 && skipped>0) alert('No allowed files found in selection (skipped others).');
+  renderQueue();
+}
+
+// sanitize filename: keep chars, add timestamp to avoid collisions
+function sanitizeFileName(name){
+  const safe = name.replace(/[^a-zA-Z0-9\-\._]/g, '_');
+  const ts = Date.now();
+  // keep extension
+  const ext = (safe.split('.').pop()||'').toLowerCase();
+  const base = safe.replace(/\.[^.]+$/, '').slice(0,60);
+  return `${base}_${ts}.${ext}`;
+}
+
+// fetch remote url and add to queue (CORS may block)
+async function fetchFromUrlToQueue(url){
+  try {
+    // quick validation of extension if present
+    const extFromUrl = (url.split('?')[0].split('.').pop()||'').toLowerCase();
+    if(extFromUrl && !CONFIG.exts.includes(extFromUrl)){
+      if(!confirm('File extension looks not allowed. Try fetch anyway?')) return;
+    }
+    const resp = await fetch(url);
+    if(!resp.ok) throw new Error('Fetch failed: '+resp.status);
+    const blob = await resp.blob();
+    const mimeExt = (blob.type.split('/').pop()||'').toLowerCase();
+    const ext = extFromUrl || mimeExt;
+    if(!CONFIG.exts.includes(ext)) {
+      alert('Fetched file extension/type not allowed: ' + mimeExt);
+      return;
+    }
+    const fname = sanitizeFileName((new URL(url)).pathname.split('/').pop() || `scraped_${Date.now()}.${ext}`);
+    const file = new File([blob], fname, {type: blob.type});
+    addFilesFromList([file]);
+  } catch(err){
+    console.error(err);
+    alert('Failed to fetch link (CORS or network).');
+  }
+}
+
+// queue rendering
+function renderQueue(){
+  const container = $('queueList');
+  container.innerHTML = '';
+  if(queue.length===0){
+    container.innerHTML = '<div class="muted">Queue is empty.</div>';
+    $('startUploadBtn').disabled = true;
+    return;
+  }
+  queue.forEach(item=>{
+    const el = document.createElement('div');
+    el.className = 'q-item';
+    el.innerHTML = `
+      <img class="q-thumb" src="${getPreviewURL(item)}" alt="">
+      <div class="q-meta">
+        <div class="q-name">${item.name}</div>
+        <div class="q-sub">${readableSize(item.file.size)} • ${item.state === 'uploading' ? 'Uploading...' : item.state}</div>
+        <div style="margin-top:6px" class="progress"><i style="width:${item.progress||0}%"></i></div>
+      </div>
+      <div class="q-actions">
+        <button title="Remove" style="background:none;border:none;color:var(--error);cursor:pointer;font-weight:700">×</button>
+      </div>
+    `;
+    el.querySelector('button').onclick = () => {
+      queue = queue.filter(q=>q.id!==item.id);
+      renderQueue();
+    };
+    container.appendChild(el);
+  });
+  $('startUploadBtn').disabled = queue.filter(q=>q.state==='ready').length===0;
+}
+
+function getPreviewURL(item){
+  // create temporary object URL for preview
+  try {
+    return URL.createObjectURL(item.file);
+  } catch(e){
+    return '';
+  }
+}
+
+function readableSize(n){
+  if(n<1024) return n+' B';
+  if(n<1024*1024) return (n/1024).toFixed(1)+' KB';
+  if(n<1024*1024*1024) return (n/1024/1024).toFixed(1)+' MB';
+  return (n/1024/1024/1024).toFixed(1)+' GB';
+}
+
+// --- upload logic (XMLHttpRequest to get upload progress)
+$('startUploadBtn').addEventListener('click', async ()=>{
+  const token = getToken();
+  if(!token) return alert('No token saved. Please connect first.');
+  saveCfgToLocal();
+  const toUpload = queue.filter(q=>q.state==='ready');
+  if(toUpload.length===0) return alert('No ready files in queue.');
+  $('startUploadBtn').disabled = true;
+  let completed=0;
+  const total = toUpload.length;
+  setOverallProgress(0, `0/${total}`);
+  for(const item of toUpload){
+    item.state = 'uploading';
+    renderQueue();
+    try {
+      // create unique name & update item.name if needed
+      const finalName = item.name;
+      const path = `${CONFIG.folder}/${finalName}`;
+      await uploadFile(item.file, path, (pct)=> {
+        item.progress = pct;
+        renderQueue();
+      });
+      item.state = 'done';
+      item.progress = 100;
+      completed++;
+      setOverallProgress(Math.round((completed/total)*100), `${completed}/${total}`);
+      appendRecent(finalName);
+      // live add into gallery (we will refresh remote list periodically)
+      // But to ensure it shows immed, we append simple entry to remoteFiles if not exists
+      remoteFiles.unshift({name: finalName, sha: null, size: item.file.size});
+      renderGallery();
+    } catch(e){
+      console.error('upload error', e);
+      item.state = 'error';
+      item.progress = 0;
+    }
+    renderQueue();
+  }
+  $('startUploadBtn').disabled = false;
+  setOverallProgress(100, `complete ${completed}/${total}`);
+  // reload remote file list to get correct shas
+  await loadRemoteFiles();
+});
+
+// perform upload using GitHub API
+async function uploadFile(file, repoPath, onProgress){
+  const token = getToken();
+  if(!token) throw new Error('No token');
+
+  // convert to base64
+  const base64 = await fileToBase64(file); // returns base64 string (no prefix)
+  const body = JSON.stringify({
+    message: `Upload ${repoPath}`,
+    content: base64
+  });
+
+  // use XHR so we can get progress events
+  return new Promise((resolve, reject)=>{
+    const xhr = new XMLHttpRequest();
+    const url = `https://api.github.com/repos/${cfgUserEl.value || CONFIG.user}/${cfgRepoEl.value || CONFIG.repo}/contents/${repoPath}`;
+    xhr.open('PUT', url, true);
+    xhr.setRequestHeader('Authorization', `token ${token}`);
+    xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+    xhr.upload.onprogress = (e) => {
+      if(e.lengthComputable) {
+        const p = Math.round((e.loaded / e.total) * 100);
+        onProgress && onProgress(p);
+      }
+    };
+    xhr.onreadystatechange = () => {
+      if(xhr.readyState === 4){
+        if(xhr.status >=200 && xhr.status < 300) {
+          try { resolve(JSON.parse(xhr.responseText)); } catch(e){ resolve(xhr.responseText); }
+        } else {
+          reject(new Error('Upload failed: ' + xhr.status + ' ' + xhr.responseText));
+        }
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(body);
+  });
+}
+
+// convert File -> base64 string (no data: prefix)
+function fileToBase64(file){
+  return new Promise((res, rej)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> {
+      const result = reader.result;
+      // data:<mime>;base64,XXXXX
+      const base64 = result.split(',',2)[1];
+      res(base64);
+    };
+    reader.onerror = () => rej(new Error('File read error'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// --- remote list and gallery
+
+async function loadRemoteFiles(){
+  const token = getToken();
+  if(!token) return;
+  saveCfgToLocal();
+  const url = `https://api.github.com/repos/${cfgUserEl.value || CONFIG.user}/${cfgRepoEl.value || CONFIG.repo}/contents/${CONFIG.folder}?per_page=100`;
+  try {
+    const resp = await fetch(url, {headers: {...authHeaders(), 'Accept':'application/vnd.github.v3+json'}});
+    if(!resp.ok) throw new Error('List failed: '+resp.status);
+    const data = await resp.json();
+    // filter allowed extensions & sort by date (GitHub doesn't return date in contents list; we use name or size)
+    remoteFiles = Array.isArray(data)? data.filter(f => {
+      const ext = (f.name.split('.').pop()||'').toLowerCase();
+      return CONFIG.exts.includes(ext);
+    }).map(f => ({name:f.name, sha:f.sha, size:f.size, download_url: f.download_url || null})) : [];
+    // reverse newest first if names include timestamp
+    remoteFiles.sort((a,b)=> {
+      // try to sort by timestamp in name
+      const ad = parseInt((a.name.match(/_(\d{10,})\./)||[])[1] || 0);
+      const bd = parseInt((b.name.match(/_(\d{10,})\./)||[])[1] || 0);
+      if(ad && bd) return bd - ad;
+      return b.name.localeCompare(a.name);
+    });
+    renderGallery();
+  } catch(err){
+    console.error(err);
+    $('gallery').innerHTML = '<div class="muted">Failed to list remote files. Check token/permissions or repo/folder.</div>';
+  }
+}
+
+function renderGallery(){
+  const gal = $('gallery');
+  gal.innerHTML = '';
+  if(remoteFiles.length === 0){
+    gal.innerHTML = '<div class="muted">No files in remote storage yet.</div>';
+    return;
+  }
+  remoteFiles.forEach(f => {
+    const ext = (f.name.split('.').pop()||'').toLowerCase();
+    const isVid = ext === 'mp4';
+    const url = buildCdnUrl(f.name);
+    const cell = document.createElement('div');
+    cell.className = 'thumb';
+    cell.innerHTML = `
+      <div style="width:100%; display:flex; gap:8px; align-items:center">
+        <input type="checkbox" class="remoteCheckbox" data-name="${f.name}" style="width:18px;height:18px">
+        <div style="flex:1">
+          ${isVid ? `<video src="${url}" muted playsinline preload="metadata"></video>` : `<img src="${url}" loading="lazy" alt="${f.name}">`}
+          <div class="fn">${f.name}</div>
+        </div>
+      </div>
+    `;
+    // click to preview (but not checkbox)
+    cell.addEventListener('click', (ev) => {
+      if(ev.target.tagName === 'INPUT') return;
+      openModal(f);
+    });
+    gal.appendChild(cell);
+  });
+
+  // wire checkboxes
+  document.querySelectorAll('.remoteCheckbox').forEach(box=>{
+    box.checked = selectedRemote.has(box.dataset.name);
+    box.onchange = (e) => {
+      if(e.target.checked) selectedRemote.add(e.target.dataset.name);
+      else selectedRemote.delete(e.target.dataset.name);
+    };
+  });
+}
+
+// build CDN url (if cdn configured), fallback to raw.githubusercontent if not
+function buildCdnUrl(filename){
+  const cdn = cfgCdnEl.value.trim() || CONFIG.cdn;
+  if(cdn){
+    // user already configured CNAME -> cdn domain should map to raw pages or upstream proxy
+    return `https://${cdn}/${cfgFolderEl.value || CONFIG.folder}/${filename}`;
+  }
+  // fallback to raw.githubusercontent link for preview
+  const user = cfgUserEl.value || CONFIG.user;
+  const repo = cfgRepoEl.value || CONFIG.repo;
+  return `https://raw.githubusercontent.com/${user}/${repo}/main/${cfgFolderEl.value || CONFIG.folder}/${filename}`;
+}
+
+// modal
+const modal = $('modal');
+const modalBox = $('modalBox');
+const modalUrl = $('modalUrl');
+function openModal(file){
+  const url = buildCdnUrl(file.name);
+  const ext = (file.name.split('.').pop()||'').toLowerCase();
+  modalBox.innerHTML = '';
+  if(ext === 'mp4'){
+    const vid = document.createElement('video');
+    vid.src = url;
+    vid.controls = true;
+    vid.autoplay = true;
+    vid.style.maxWidth = '90vw';
+    vid.style.maxHeight = '75vh';
+    modalBox.appendChild(vid);
+  } else {
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.maxWidth = '90vw';
+    img.style.maxHeight = '80vh';
+    modalBox.appendChild(img);
+  }
+  modalUrl.innerText = url;
+  modal.style.display = 'flex';
+}
+function closeModal(){
+  modal.style.display = 'none';
+  modalBox.innerHTML = '';
+  modalUrl.innerText = '';
+}
+
+// --- delete remote file(s)
+$('deleteSelectedRemote').addEventListener('click', async ()=>{
+  if(selectedRemote.size===0) return alert('No files selected.');
+  if(!confirm(`Delete ${selectedRemote.size} selected file(s) from repository? This is permanent.`)) return;
+  const names = Array.from(selectedRemote);
+  await deleteRemoteFiles(names);
+});
+
+$('bulkClearRemote').addEventListener('click', async ()=>{
+  // delete all selected (same as above)
+  if(selectedRemote.size===0) return alert('No remote files selected (use checkboxes).');
+  if(!confirm('Delete selected remote files?')) return;
+  await deleteRemoteFiles(Array.from(selectedRemote));
+});
+
+async function deleteRemoteFiles(names){
+  const token = getToken();
+  if(!token) return alert('No token stored.');
+  const user = cfgUserEl.value || CONFIG.user;
+  const repo = cfgRepoEl.value || CONFIG.repo;
+  let deleted = 0, failed = 0;
+  for(const name of names){
+    try {
+      // find sha from remoteFiles
+      const entry = remoteFiles.find(r=>r.name===name);
+      if(!entry || !entry.sha){
+        // if sha missing, re-fetch file list to get sha
+        await loadRemoteFiles();
+      }
+      const item = remoteFiles.find(r=>r.name===name);
+      if(!item || !item.sha) {
+        failed++;
+        continue;
+      }
+      const url = `https://api.github.com/repos/${user}/${repo}/contents/${CONFIG.folder}/${name}`;
+      const resp = await fetch(url, {
+        method: 'DELETE',
+        headers: {...authHeaders(), 'Content-Type':'application/json'},
+        body: JSON.stringify({ message:`Delete ${name}`, sha: item.sha })
+      });
+      if(!resp.ok) {
+        failed++;
+        console.error(await resp.text());
+      } else {
+        deleted++;
+        // remove from remoteFiles & selected set
+        remoteFiles = remoteFiles.filter(r=>r.name!==name);
+        selectedRemote.delete(name);
+      }
+    } catch(err){
+      console.error(err); failed++;
+    }
+  }
+  renderGallery();
+  alert(`Delete done: ${deleted} deleted, ${failed} failed.`);
+  await loadRemoteFiles();
+}
+
+// helper: append recent list
+function appendRecent(name){
+  const el = $('recentUploads');
+  const cur = (el.innerText || '').split(',').map(s=>s.trim()).filter(Boolean);
+  cur.unshift(name);
+  el.innerText = cur.slice(0,6).join(', ');
+}
+
+// --- small utilities
+$('loadGalleryBtn').addEventListener('click', ()=>loadRemoteFiles());
+$('listAllBtn').addEventListener('click', ()=>loadRemoteFiles());
+$('selectAllRemote').addEventListener('click', ()=>{ remoteFiles.forEach(r=>selectedRemote.add(r.name)); renderGallery(); });
+$('deselectAllRemote').addEventListener('click', ()=>{ selectedRemote.clear(); renderGallery(); });
+
+// initial load
+saveCfgToLocal();
+loadLocalConfig();
+loadRemoteFiles();
+renderQueue();
+
+/* Notes & limits:
+ - GitHub API rate limits apply. If many uploads, you may receive 403 on rate limit.
+ - Files > 100MB cannot be uploaded; we set 90MB safety cap.
+ - When using CDN domain (CNAME), ensure that it actually serves the /storage path:
+   If using GitHub Pages, configure the Pages branch and ensure the storage path is published.
+ - This client stores token in localStorage for convenience. For production, prefer a safer approach.
+*/
+
+</script>
+</body>
+</html>
