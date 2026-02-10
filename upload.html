@@ -3,94 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CDN Pro Dashboard</title>
+    <title>CDN Pro - Fixed & Faster</title>
     <style>
         :root { --primary: #6366f1; --bg: #0d1117; --card: #161b22; --accent: #10b981; --border: #30363d; --error: #f85149; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: #c9d1d9; margin: 0; padding: 0; }
-        
-        /* Header / Nav */
-        header { background: var(--card); border-bottom: 1px solid var(--border); padding: 10px 40px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .token-status { font-size: 0.8rem; display: flex; align-items: center; gap: 8px; }
-        .dot { height: 8px; width: 8px; background: var(--accent); border-radius: 50%; display: inline-block; }
-        
-        .container { max-width: 1200px; margin: 20px auto; display: grid; grid-template-columns: 380px 1fr; gap: 20px; padding: 0 20px; }
-        
-        /* Sidebar Styles */
+        header { background: var(--card); border-bottom: 1px solid var(--border); padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .container { max-width: 1200px; margin: 20px auto; display: grid; grid-template-columns: 400px 1fr; gap: 20px; padding: 0 20px; }
         .card { background: var(--card); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.5); margin-bottom: 20px; }
         
+        /* Token Management */
+        .token-input-area { margin-bottom: 10px; }
         #tokenSection.hidden { display: none; }
-        .token-mini { font-size: 0.75rem; color: #8b949e; cursor: pointer; text-decoration: underline; }
-
-        input { width: 100%; background: #010409; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 6px; box-sizing: border-box; margin-bottom: 10px; }
         
         /* Drop Zone */
-        .drop-zone { border: 2px dashed #484f58; padding: 40px 20px; text-align: center; cursor: pointer; border-radius: 12px; transition: 0.2s; background: #0d1117; }
+        .drop-zone { border: 2px dashed #484f58; padding: 30px; text-align: center; cursor: pointer; border-radius: 12px; background: #0d1117; transition: 0.2s; }
         .drop-zone.dragover { border-color: var(--primary); background: #1c2128; }
         
-        /* Queue & Gallery */
-        .queue-list { margin-top: 15px; max-height: 200px; overflow-y: auto; font-size: 0.85rem; }
-        .queue-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #21262d; background: #010409; border-radius: 4px; margin-bottom: 4px; }
-        
-        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
-        .thumb { background: #010409; border: 1px solid var(--border); border-radius: 8px; padding: 5px; cursor: pointer; transition: 0.2s; text-align: center; }
-        .thumb:hover { border-color: var(--primary); transform: translateY(-3px); }
-        .thumb img, .thumb video { width: 100%; height: 100px; object-fit: cover; border-radius: 4px; }
+        /* Queue System */
+        .queue-list { margin-top: 15px; max-height: 250px; overflow-y: auto; }
+        .queue-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #010409; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 5px; font-size: 0.85rem; }
+        .remove-btn { color: var(--error); cursor: pointer; font-weight: bold; margin-left: 10px; padding: 0 5px; }
 
-        button { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s; }
-        button:hover { filter: brightness(1.1); }
-        .btn-refresh { width: auto; background: #21262d; padding: 5px 15px; font-size: 0.8rem; border: 1px solid var(--border); margin: 0; }
+        /* Gallery */
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+        .thumb { background: #010409; border: 1px solid var(--border); border-radius: 8px; padding: 5px; cursor: pointer; text-align: center; }
+        .thumb img, .thumb video { width: 100%; height: 90px; object-fit: cover; border-radius: 4px; background: #161b22; }
         
+        button { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        input[type="text"], input[type="password"] { width: 100%; background: #010409; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 6px; box-sizing: border-box; }
+
         #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-weight: 800; font-size: 1.2rem; color: var(--primary);">CDN<span style="color:#fff">PRO</span></div>
-    <div class="token-status" id="statusIndicator">
-        <span class="dot"></span> 
-        <span id="tokenMsg">Token Active</span> 
-        <span class="token-mini" onclick="toggleToken()">[Change]</span>
+    <div style="font-weight: 800; font-size: 1.2rem;">CDN<span style="color:var(--primary)">PRO</span></div>
+    <div id="statusHeader">
+        <span id="lockStatus">🔒 Locked</span>
+        <button class="remove-btn" onclick="clearToken()" style="background:none; border:none; font-size:0.7rem;">[Logout]</button>
     </div>
 </header>
 
 <div class="container">
     <div class="sidebar">
-        <div class="card hidden" id="tokenSection">
-            <h3 style="margin-top:0">Authentication</h3>
-            <input type="password" id="ghToken" placeholder="Paste GitHub Personal Access Token">
-            <button onclick="toggleToken()" style="background: var(--accent)">Save & Lock</button>
+        <div class="card" id="tokenSection">
+            <h3 style="margin:0 0 10px 0">Authorization</h3>
+            <input type="password" id="ghToken" placeholder="GitHub Token">
+            <button onclick="saveToken()">Connect Storage</button>
         </div>
 
         <div class="card">
-            <h3 style="margin-top:0">Upload Hub</h3>
+            <h3 style="margin:0 0 10px 0">Upload Queue</h3>
             <div class="drop-zone" id="dropZone">
-                <div id="dropLabel"><strong>Drop Media or Links</strong><br><small>Bulk upload enabled</small></div>
+                <b>Drag & Drop Files</b><br><small>or click to browse</small>
                 <input type="file" id="fileInput" multiple hidden>
             </div>
+            <input type="text" id="linkInput" placeholder="Paste URL + Enter" style="margin-top:10px">
             
-            <input type="text" id="linkInput" placeholder="Paste URL + Enter to Scrape" style="margin-top:15px">
-            
-            <button id="startUploadBtn">Start Upload Sequence</button>
             <div class="queue-list" id="queueList"></div>
+            <button id="startBtn" disabled>Start Upload</button>
         </div>
     </div>
 
     <div class="content">
         <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 style="margin:0">Cloud Storage Library</h3>
-                <button class="btn-refresh" id="refreshBtn">Refresh Storage</button>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0">Live Storage</h3>
+                <button onclick="loadGallery()" style="width:auto; padding:5px 15px; font-size:0.8rem;">Refresh</button>
             </div>
-            <div class="gallery" id="gallery">Checking authorization...</div>
+            <div class="gallery" id="gallery">Please connect your token...</div>
         </div>
     </div>
 </div>
 
 <div id="modal" onclick="this.style.display='none'">
-    <div id="modal-container"></div>
-    <div id="modal-url" style="margin-top:20px; background:#161b22; padding:10px; border-radius:6px; font-family:monospace; border:1px solid var(--border);"></div>
-    <button style="width:auto; margin-top:15px; padding:8px 30px;" onclick="copyModalLink(event)">Copy Link</button>
+    <div id="modal-content"></div>
+    <div id="modal-url" style="margin-top:20px; padding:10px; background:#010409; border:1px solid var(--border); width:70%; text-align:center; word-break:break-all;"></div>
 </div>
 
 <script>
@@ -102,151 +92,155 @@
         exts: ['jpg','jpeg','png','gif','webp','svg','mp4']
     };
 
-    let uploadQueue = [];
+    let queue = [];
     const tokenInput = document.getElementById('ghToken');
-    const tokenSection = document.getElementById('tokenSection');
-    const statusIndicator = document.getElementById('statusIndicator');
+    const startBtn = document.getElementById('startBtn');
 
-    // 1. Token Visibility Logic
+    // --- TOKEN LOGIC ---
     window.onload = () => {
         const saved = localStorage.getItem('cdn_token_secure');
         if (saved) {
             tokenInput.value = saved;
-            tokenSection.classList.add('hidden');
-            statusIndicator.style.opacity = "1";
+            document.getElementById('tokenSection').classList.add('hidden');
+            document.getElementById('lockStatus').innerText = "✅ Connected";
             loadGallery();
-        } else {
-            tokenSection.classList.remove('hidden');
-            statusIndicator.style.opacity = "0";
-            gallery.innerHTML = "Please enter a token to begin.";
         }
     };
 
-    function toggleToken() {
-        if (tokenSection.classList.contains('hidden')) {
-            tokenSection.classList.remove('hidden');
-        } else {
-            if (tokenInput.value) {
-                localStorage.setItem('cdn_token_secure', tokenInput.value);
-                tokenSection.classList.add('hidden');
-                statusIndicator.style.opacity = "1";
-                loadGallery();
-            } else {
-                alert("Please enter a token first.");
-            }
-        }
+    function saveToken() {
+        if (!tokenInput.value) return alert("Enter token");
+        localStorage.setItem('cdn_token_secure', tokenInput.value);
+        location.reload();
     }
 
-    // --- UPLOAD & QUEUE LOGIC ---
+    function clearToken() {
+        localStorage.removeItem('cdn_token_secure');
+        location.reload();
+    }
+
+    // --- QUEUE LOGIC ---
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
 
     dropZone.onclick = () => fileInput.click();
-    fileInput.onchange = () => { addFilesToQueue(fileInput.files); fileInput.value = ''; };
-
-    // Drag & Drop
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
-        dropZone.addEventListener(e, x => { x.preventDefault(); x.stopPropagation(); });
-    });
-    dropZone.ondragover = () => dropZone.classList.add('dragover');
+    fileInput.onchange = (e) => addFiles(e.target.files);
+    
+    // Drag/Drop
+    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
     dropZone.ondragleave = () => dropZone.classList.remove('dragover');
     dropZone.ondrop = (e) => {
+        e.preventDefault();
         dropZone.classList.remove('dragover');
-        addFilesToQueue(e.dataTransfer.files);
+        addFiles(e.dataTransfer.files);
     };
 
     // Link Paste
-    document.getElementById('linkInput').onkeypress = async (e) => {
+    document.getElementById('linkInput').onkeydown = async (e) => {
         if (e.key === 'Enter') {
             const url = e.target.value;
-            e.target.value = "Fetching Link...";
+            e.target.value = "Fetching...";
             try {
                 const res = await fetch(url);
                 const blob = await res.blob();
-                const name = url.split('/').pop().split('?')[0] || "scraped_asset";
-                const file = new File([blob], name, { type: blob.type });
-                addFilesToQueue([file]);
+                const file = new File([blob], `scraped_${Date.now()}.${blob.type.split('/')[1]}`, {type: blob.type});
+                addFiles([file]);
                 e.target.value = "";
-            } catch (err) { alert("CORS Error: Site blocked scraping."); e.target.value = ""; }
+            } catch(err) { alert("CORS Blocked Link"); e.target.value = ""; }
         }
     };
 
-    function addFilesToQueue(files) {
+    function addFiles(files) {
         for (let f of files) {
             const ext = f.name.split('.').pop().toLowerCase();
             if (CONFIG.exts.includes(ext)) {
-                uploadQueue.push({ file: f, status: 'waiting', name: f.name });
+                queue.push({ file: f, id: Math.random(), status: 'Ready' });
             }
         }
-        renderQueue();
+        updateUI();
     }
 
-    function renderQueue() {
-        document.getElementById('queueList').innerHTML = uploadQueue.map((item, i) => `
+    function removeFile(id) {
+        queue = queue.filter(i => i.id !== id);
+        updateUI();
+    }
+
+    function updateUI() {
+        const list = document.getElementById('queueList');
+        list.innerHTML = queue.map(item => `
             <div class="queue-item">
-                <span style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.name}</span>
-                <span style="color: ${item.status === 'done' ? 'var(--accent)' : '#8b949e'}">${item.status.toUpperCase()}</span>
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">${item.file.name}</span>
+                <span>
+                    <small style="color:${item.status === 'Done' ? 'var(--accent)' : '#8b949e'}">${item.status}</small>
+                    ${item.status === 'Ready' ? `<span class="remove-btn" onclick="removeFile(${item.id})">×</span>` : ''}
+                </span>
             </div>
         `).join('');
+        startBtn.disabled = queue.filter(i => i.status === 'Ready').length === 0;
     }
 
-    document.getElementById('startUploadBtn').onclick = async () => {
-        const token = tokenInput.value;
-        if (!token || uploadQueue.length === 0) return;
+    // --- UPLOAD CORE ---
+    startBtn.onclick = async () => {
+        startBtn.disabled = true;
+        const token = localStorage.getItem('cdn_token_secure');
         
-        document.getElementById('startUploadBtn').disabled = true;
-
-        for (let i = 0; i < uploadQueue.length; i++) {
-            if (uploadQueue[i].status === 'done') continue;
-            uploadQueue[i].status = 'syncing';
-            renderQueue();
+        for (let item of queue) {
+            if (item.status !== 'Ready') continue;
+            item.status = 'Uploading...';
+            updateUI();
 
             try {
-                const list = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}`, {
+                // Get next number with Cache Buster to ensure real-time accuracy
+                const listRes = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}?cb=${Date.now()}`, {
                     headers: { 'Authorization': `token ${token}` }
                 });
-                const remoteFiles = await list.json();
+                const remote = await listRes.json();
                 let nextNum = 1;
-                if (Array.isArray(remoteFiles)) {
-                    const nums = remoteFiles.map(f => parseInt(f.name)).filter(n => !isNaN(n));
+                if (Array.isArray(remote)) {
+                    const nums = remote.map(f => parseInt(f.name)).filter(n => !isNaN(n));
                     if (nums.length > 0) nextNum = Math.max(...nums) + 1;
                 }
 
-                const file = uploadQueue[i].file;
-                const ext = file.name.split('.').pop().toLowerCase();
+                const ext = item.file.name.split('.').pop().toLowerCase();
                 const newName = `${nextNum}.${ext}`;
+                const base64 = await toBase64(item.file);
 
-                const reader = new FileReader();
-                const base64 = await new Promise((res) => {
-                    reader.onload = () => res(reader.result.split(',')[1]);
-                    reader.readAsDataURL(file);
-                });
-
-                const res = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}/${newName}`, {
+                const upload = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}/${newName}`, {
                     method: 'PUT',
-                    headers: { 'Authorization': `token ${token}` },
-                    body: JSON.stringify({ message: `CDN Upload ${newName}`, content: base64 })
+                    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: `Upload ${newName}`, content: base64 })
                 });
 
-                uploadQueue[i].status = res.ok ? 'done' : 'fail';
-            } catch (e) { uploadQueue[i].status = 'fail'; }
-            renderQueue();
+                if (upload.ok) {
+                    item.status = 'Done';
+                } else { item.status = 'Error'; }
+            } catch (e) { item.status = 'Error'; }
+            updateUI();
         }
-        document.getElementById('startUploadBtn').disabled = false;
         loadGallery();
+        startBtn.disabled = false;
     };
 
-    // --- GALLERY ---
+    const toBase64 = file => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(file);
+    });
+
+    // --- GALLERY LOGIC ---
     async function loadGallery() {
-        const token = tokenInput.value;
+        const token = localStorage.getItem('cdn_token_secure');
         if (!token) return;
-        gallery.innerHTML = "Syncing...";
+        const gal = document.getElementById('gallery');
+        gal.innerHTML = "Syncing...";
+
         try {
-            const res = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}`, {
+            // Added ?t=timestamp to avoid GitHub API caching
+            const res = await fetch(`https://api.github.com/repos/${CONFIG.user}/${CONFIG.repo}/contents/${CONFIG.folder}?t=${Date.now()}`, {
                 headers: { 'Authorization': `token ${token}` }
             });
             const files = await res.json();
-            gallery.innerHTML = "";
+            gal.innerHTML = "";
+
             files.filter(f => CONFIG.exts.includes(f.name.split('.').pop().toLowerCase())).reverse().forEach(f => {
                 const url = `https://${CONFIG.cdn}/${CONFIG.folder}/${f.name}`;
                 const isVid = f.name.endsWith('.mp4');
@@ -256,16 +250,13 @@
                 div.innerHTML += `<span>${f.name}</span>`;
                 div.onclick = () => {
                     document.getElementById('modal').style.display = 'flex';
-                    document.getElementById('modal-container').innerHTML = isVid ? `<video src="${url}" controls autoplay style="max-height:70vh; max-width:80vw;"></video>` : `<img src="${url}" style="max-height:70vh; max-width:80vw;">`;
+                    document.getElementById('modal-content').innerHTML = isVid ? `<video src="${url}" controls autoplay style="max-width:80vw; max-height:70vh;"></video>` : `<img src="${url}" style="max-width:80vw; max-height:70vh;">`;
                     document.getElementById('modal-url').innerText = url;
                 };
-                gallery.appendChild(div);
+                gal.appendChild(div);
             });
-        } catch (e) { gallery.innerHTML = "Library failed to load."; }
+        } catch(e) { gal.innerHTML = "Failed to load."; }
     }
-
-    function copyModalLink(e) { e.stopPropagation(); navigator.clipboard.writeText(document.getElementById('modal-url').innerText); alert("Copied!"); }
-    document.getElementById('refreshBtn').onclick = loadGallery;
 </script>
 </body>
 </html>
