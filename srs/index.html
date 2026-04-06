@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Editing Portfolio</title>
+    <style>
+        /* === CSS / Design Pattern === */
+        :root {
+            --bg-color: #0d0d12;
+            --text-main: #f3f3f4;
+            --text-muted: #9ca3af;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --card-bg: #1e1e24;
+            --border: #2d2d36;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        section {
+            padding: 5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1, h2, h3 {
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        .text-accent { color: var(--accent); }
+        .text-muted { color: var(--text-muted); margin-bottom: 2rem; }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding-top: 8rem;
+            padding-bottom: 8rem;
+        }
+
+        .hero h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); margin-bottom: 1.5rem; }
+        .hero p { font-size: 1.2rem; max-width: 800px; margin: 0 auto 2.5rem auto; color: var(--text-muted); }
+
+        /* Grid Layouts */
+        .grid {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        .grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            border-radius: 12px;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover { transform: translateY(-5px); border-color: var(--accent); }
+
+        /* Video Placeholders */
+        .video-placeholder {
+            width: 100%;
+            height: 200px;
+            background: #2a2a35;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .video-placeholder:hover { background: #353545; color: white; }
+
+        /* Forms */
+        form { display: flex; flex-direction: column; gap: 1rem; max-width: 600px; margin: 0 auto; }
+        input, textarea {
+            width: 100%;
+            padding: 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+
+        /* Scroll Animations */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <section class="hero animate-on-scroll">
+        <h1>Turn your ideas into <span class="text-accent">scroll-stopping videos</span> that drive action.</h1>
+        <p>You bring the vision; I build the retention. I craft fast-paced, visually dynamic edits designed to hack the algorithm, hook your audience in the first 3 seconds, and convert casual viewers into loyal followers.</p>
+        
+        <a href="mailto:salman4k@gmail.com?subject=Inquiry:%20Free%20Video%20Editing%20Counseling&body=Hi%20Salman,%0A%0AI'm%20interested%20in%20booking%20a%20free%20counseling%20session%20to%20discuss%20growing%20my%20content.%0A%0AMy%20Channel/Website%20Link:%20[Insert Link]%0AMy%20Main%20Goal:%20[E.g., More leads, faster growth, better retention]%0A%0ALooking%20forward%20to%20chatting!%0A%0A- [Your Name]" class="btn btn-primary">Get Free Counseling</a>
+    </section>
+
+    <section class="animate-on-scroll">
+        <h2>How We Win: The Proven Growth Workflow</h2>
+        <p class="text-muted">Great editing isn't just cutting clips together; it's psychology. Here is how I partner with creators to guarantee content performs.</p>
+        <div class="grid grid-2">
+            <div class="card">
+                <h3>1. The Strategy Sync</h3>
+                <p>We establish the winning hook, the visual style, and the pacing required for your specific platform based on your raw footage.</p>
+            </div>
+            <div class="card">
+                <h3>2. The Retention Engine</h3>
+                <p>I strip away dead air, building momentum with aggressive A-cut pacing, dynamic B-roll, custom motion graphics, and color grading.</p>
+            </div>
+            <div class="card">
+                <h3>3. Immersive Sound Design</h3>
+                <p>I layer cinematic sound effects, risers, and perfectly timed music beds to subconsciously guide the viewer's emotion and attention.</p>
+            </div>
+            <div class="card">
+                <h3>4. Review & Dominate</h3>
+                <p>You receive the first draft via a seamless review link. Once approved, I deliver the final, fully optimized files ready to upload.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="animate-on-scroll">
+        <h2>Proof in the Pacing</h2>
+        <p class="text-muted">Browse my latest projects engineered for maximum impact.</p>
+        
+        <h3 style="margin-top: 3rem; color: var(--accent);">Short-Form Editing</h3>
+        <p class="text-muted">The top of your sales funnel. Edits that trap attention on TikTok, IG Reels, and YT Shorts.</p>
+        <div class="grid grid-2">
+            <div class="card">
+                <a href="#" class="video-placeholder">▶ Watch Viral Talking Head</a>
+                <h3>The Viral Talking Head</h3>
+                <p><strong>Why it works:</strong> The "Devin Jatho" style uses constant visual resets to prevent scrolling. I use high-contrast subtitles and strategic punch-ins every 2-3 seconds.</p>
+            </div>
+            <div class="card">
+                <a href="#" class="video-placeholder">▶ Watch Minimalistic Animation</a>
+                <h3>Minimalistic Animation</h3>
+                <p><strong>Why it works:</strong> Clean, flat vector graphics keep cognitive load low while retention stays incredibly high. Perfect for educational content.</p>
+            </div>
+        </div>
+
+        <h3 style="margin-top: 4rem; color: var(--accent);">Long-Form Editing</h3>
+        <p class="text-muted">Where we build deep relationships and close high-ticket sales.</p>
+        <div class="grid grid-3">
+            <div class="card">
+                <a href="#" class="video-placeholder">▶ Watch SaaS Animation</a>
+                <h3>SaaS & UI Walkthroughs</h3>
+                <p>I turn boring screen recordings into sleek, dynamic 3D/2D motion graphics highlighting core features.</p>
+            </div>
+            <div class="card">
+                <a href="#" class="video-placeholder">▶ Watch Explainer Video</a>
+                <h3>Explainer Videos</h3>
+                <p>Story-driven editing that visually maps out your customer's pain point and transitions into your product as the solution.</p>
+            </div>
+            <div class="card">
+                <a href="#" class="video-placeholder">▶ Watch Documentary Edit</a>
+                <h3>Documentary Style</h3>
+                <p>Narrative-first cutting, dramatic pacing shifts, and emotive music scoring to keep viewers invested for 20+ minutes.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="animate-on-scroll">
+        <h2>What Creators Say</h2>
+        <p class="text-muted">Don't just take my word for it.</p>
+        <div class="grid grid-3" id="testimonial-container"></div>
+    </section>
+
+    <section class="animate-on-scroll" style="text-align: center;">
+        <h2>Let's build your next viral video.</h2>
+        <p class="text-muted">Fill out the form below, and I'll get back to you within 24 hours.</p>
+        
+        <form id="contactForm">
+            <input type="text" name="name" id="name" placeholder="Your Name" required>
+            <input type="email" name="email" id="email" placeholder="Your Email" required>
+            <textarea name="message" id="message" rows="5" placeholder="Tell me about your project..." required></textarea>
+            <button type="submit" class="btn btn-primary" id="submitBtn">Send Message</button>
+            <p id="formStatus" style="display: none; margin-top: 1rem; font-weight: bold;"></p>
+        </form>
+    </section>
+
+    <script>
+        // --- 1. Testimonial JSON Logic ---
+        // You can easily edit this data to update your website
+        const testimonialsData = [
+            {
+                name: "Alex Hormozi (Not really, but imagine!)",
+                role: "Entrepreneur",
+                review: "Salman completely changed how my content performs. Retention is up 40%."
+            },
+            {
+                name: "Sarah Jenkins",
+                role: "SaaS Founder",
+                review: "The UI animations he made for our software explainer look incredibly premium."
+            },
+            {
+                name: "Mark T.",
+                role: "YouTube Creator",
+                review: "He understands the 'Devin Jatho' style perfectly. My Instagram is blowing up."
+            }
+        ];
+
+        const testimonialContainer = document.getElementById('testimonial-container');
+
+        testimonialsData.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <p style="font-style: italic; margin-bottom: 1rem;">"${item.review}"</p>
+                <h4 style="color: var(--accent);">${item.name}</h4>
+                <span style="font-size: 0.9rem; color: var(--text-muted);">${item.role}</span>
+            `;
+            testimonialContainer.appendChild(card);
+        });
+
+        // --- 2. Contact Form Fetch API Logic ---
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Stop page reload
+            
+            const formStatus = document.getElementById('formStatus');
+            const submitBtn = document.getElementById('submitBtn');
+            const formData = new FormData(this);
+
+            // UX update while sending
+            submitBtn.textContent = "Sending...";
+            submitBtn.style.opacity = "0.7";
+            submitBtn.disabled = true;
+
+            fetch('https://mywebsite.com/send.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if(response.ok) {
+                    formStatus.style.display = 'block';
+                    formStatus.style.color = '#10b981'; // Green
+                    formStatus.textContent = 'Message sent successfully! I will reach out soon.';
+                    this.reset();
+                } else {
+                    throw new Error('Network response was not ok.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                formStatus.style.display = 'block';
+                formStatus.style.color = '#ef4444'; // Red
+                formStatus.textContent = 'Oops! Something went wrong. Please email me directly.';
+            })
+            .finally(() => {
+                // Reset button UX
+                submitBtn.textContent = "Send Message";
+                submitBtn.style.opacity = "1";
+                submitBtn.disabled = false;
+            });
+        });
+
+        // --- 3. Scroll Animations Logic (Intersection Observer) ---
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                }
+            });
+        }, { threshold: 0.1 }); // Triggers when 10% of element is visible
+
+        document.querySelectorAll('.animate-on-scroll').forEach((element) => {
+            observer.observe(element);
+        });
+    </script>
+</body>
+</html>
